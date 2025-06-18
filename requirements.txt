@@ -1,0 +1,9 @@
+numpy
+pandas
+nibabel
+tqdm
+scikit-learn
+torch
+monai
+PyYAML
+openpyxl 

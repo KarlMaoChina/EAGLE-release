@@ -1,0 +1,40 @@
+# Configuration for the Four-Modal Fusion Model Training
+
+# General settings
+device: 'cuda'
+output_dir: './results/four_modal_fusion'
+num_folds: 5
+
+# Paths
+paths:
+  # Path to the CSV file with data splits and labels
+  csv_path: "/data/maoshufan/dual_spacing_enhance_mask/resplit_dataset_20241204_151508.csv"
+  # Path to the main image data directory
+  data_path: "/data/maoshufan/dual_spacing_enhance_mask"
+  # Path to clinical data file
+  cl_data_path: "/data/liutao/project/shufan/dataset/data_cl.xlsx"
+  # Path to radiomics features data file
+  ra_data_path: "/data/liutao/project/shufan/dataset/RA/RAfeatures2_5.csv"
+  # Path to the pre-trained image model checkpoints
+  experiment_base_path: "/data/maoshufan/nnunetverified/nnunetprocessed/experiments/dual_spacing_attention_fs0.4_lr0.0012_wd0.006_bs10_aug0.95_esp12_sp8_sf0.3_20241218_170643"
+  # Path to the pre-trained concat model checkpoints
+  concat_base_path: "/data/liutao/project/shufan/result/model/CONCAT_5"
+  # Path to the file containing radiomics feature names
+  ra_feature_names_path: "/data/liutao/project/shufan/dataset/RA/RAfeature_names_5.txt"
+
+# Hyperparameters
+hparams:
+  num_epochs: 100
+  batch_size: 8
+  learning_rate: 5.0e-6
+  weight_decay: 0.15
+  # Scheduler params
+  scheduler_factor: 0.5
+  scheduler_patience: 4
+  min_lr: 1.0e-6
+  # Early stopping
+  early_stopping_patience: 12
+  # Model architecture
+  reduction_factor: 4
+  hidden_dropout: 0.4
+  final_dropout: 0.3 
