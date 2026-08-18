@@ -1,4 +1,4 @@
-"""IBSI radiomics extraction and the frozen 32-feature slice."""
+"""IBSI radiomics extraction and the selected 32-feature slice."""
 
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ def extract_radiomics_features(
 def select_frozen_features(features: dict[str, float]) -> np.ndarray:
     missing = [name for name in SELECTED_RADIOMICS_FEATURES if name not in features]
     if missing:
-        raise KeyError(f"Missing frozen radiomic features: {missing[:8]}")
+        raise KeyError(f"Missing radiomic features: {missing[:8]}")
     return np.asarray(
         [float(features[name]) for name in SELECTED_RADIOMICS_FEATURES],
         dtype=np.float32,

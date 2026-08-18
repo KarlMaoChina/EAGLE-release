@@ -1,4 +1,4 @@
-"""End-to-end frozen inference: dual-view tensors + tabular inputs -> probability."""
+"""Inference: dual-view tensors and tabular inputs to a probability."""
 
 from __future__ import annotations
 

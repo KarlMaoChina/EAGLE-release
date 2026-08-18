@@ -1,8 +1,6 @@
 # Contributing
 
-Public code only. Do not add patient images, case identifiers, hospital names, internal usernames, or laboratory absolute paths.
-
-## Checks
+Keep patient images, case identifiers, and local paths out of this tree. Documentation is English.
 
 ```bash
 pip install -e ".[dev]"
@@ -11,12 +9,4 @@ python scripts/check_spec.py
 python scripts/smoke_synthetic.py
 ```
 
-`tests/test_leakage.py` fails if Chinese text or internal tokens appear in the tree. Keep documentation in English.
-
-## Constants
-
-`eagle/spec.py` is the locked source. `configs/eagle_v1.yaml` must match it; `scripts/check_spec.py` compares both with Appendix 1.
-
-## Weights and data
-
-Do not commit `*.pt`, `*.pth`, `*.nii.gz`, or case tables. `.gitignore` already blocks those patterns.
+Keep `configs/eagle_v1.yaml` in sync with `eagle/spec.py`. Weight files and NIfTI volumes are gitignored.

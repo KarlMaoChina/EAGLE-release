@@ -1,9 +1,4 @@
-"""Frozen EAGLE v1.0 specification.
-
-Values match the public methods: 12 clinical inputs, 32 IBSI radiomic
-features, dual-view geometry, BiAMF hyperparameters, and deployment
-threshold T = 0.5. No site identifiers or local paths belong here.
-"""
+"""EAGLE v1.0 constants: clinical names, radiomic names, geometry, and T = 0.5."""
 
 from __future__ import annotations
 
@@ -123,7 +118,7 @@ def load_selected_radiomics_names() -> tuple[str, ...]:
     text = files("eagle.assets").joinpath("radiomics_features_v1.txt").read_text(encoding="utf-8")
     names = tuple(line.strip() for line in text.splitlines() if line.strip() and not line.startswith("#"))
     if len(names) != N_RADIOMICS_SELECTED:
-        raise RuntimeError(f"Expected {N_RADIOMICS_SELECTED} frozen radiomic names, found {len(names)}")
+        raise RuntimeError(f"Expected {N_RADIOMICS_SELECTED} radiomic names, found {len(names)}")
     return names
 
 

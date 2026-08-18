@@ -48,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     stats.add_argument("--table", required=True)
     stats.add_argument("--output-dir", required=True)
 
-    infer = sub.add_parser("infer", help="Run five-fold ensemble inference at the frozen threshold T=0.5.")
+    infer = sub.add_parser("infer", help="Run five-fold ensemble inference at T=0.5.")
     infer.add_argument("--image", required=True)
     infer.add_argument("--mask", required=True)
     infer.add_argument("--clinical-table", required=True)
@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_tab.add_argument("--output-dir", required=True)
     train_tab.add_argument("--num-workers", type=int, default=0)
 
-    train_f = sub.add_parser("train-fusion", help="Train BiAMF with frozen extractors.")
+    train_f = sub.add_parser("train-fusion", help="Train the BiAMF fusion head.")
     _add_common(train_f)
     train_f.add_argument("--table", required=True)
     train_f.add_argument("--image-root", required=True)

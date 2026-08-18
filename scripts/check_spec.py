@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Check frozen public constants against the submitted Methods / Appendix 1."""
+"""Check that spec.py and eagle_v1.yaml list the same v1.0 constants."""
 from __future__ import annotations
 
 import sys
@@ -53,7 +53,7 @@ from eagle.spec import (
     WINDOW_WIDTH_HU,
 )
 
-PAPER_RADIOMICS = (
+SPEC_RADIOMICS = (
     "original_firstorder_InterquartileRange",
     "wavelet-HLL_firstorder_10Percentile",
     "log-sigma-2-0-mm-3D_firstorder_Entropy",
@@ -174,28 +174,21 @@ def _yaml_checks() -> list[tuple[str, object, object]]:
 
 
 def main() -> int:
-    lines = ["EAGLE public code vs submitted Methods / Appendix 1", ""]
+    lines = ["EAGLE v1.0 specification check", ""]
     n_ok = 0
     checks = list(CHECKS) + _yaml_checks()
     for name, expected, got in checks:
         ok = expected == got
         n_ok += int(ok)
         mark = "OK" if ok else "DIFF"
-        lines.append(f"[{mark}] {name}: paper={expected!r} code={got!r}")
+        lines.append(f"[{mark}] {name}: expected={expected!r} got={got!r}")
     lines.append("")
     lines.append(f"matched {n_ok}/{len(checks)} numeric/name checks")
-    lines.append("")
-    lines.append("Notes that are not a single constant:")
-    lines.append("- Manuscript window phrase '[40, 300] HU' is treated as WL/WW 40/300, matching Appendix 1.")
-    lines.append("- nnU-Net 3d_cascade_fullres is not bundled; public CLI expects a mask and post-processes it.")
-    lines.append("- DVSE backbone is a self-contained ResNet-18-3D; legacy freeze files will not load by key name.")
-    lines.append("- Stream training is independent per view; the combined alternating DVSE trainer is not in this release.")
-    lines.append("- >30% missing exclusion helper exists but training does not auto-drop; the submitted cohort was already assembled.")
     text = "\n".join(lines) + "\n"
     print(text, end="")
     out_dir = ROOT / "outputs"
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "paper_check.txt").write_text(text, encoding="utf-8")
+    (out_dir / "spec_check.txt").write_text(text, encoding="utf-8")
     return 0 if n_ok == len(checks) else 1
 
 

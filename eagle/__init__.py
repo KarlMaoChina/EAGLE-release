@@ -1,3 +1,5 @@
+"""EAGLE v1.0: dual-view CT and clinical fusion for gallbladder lesion scores."""
+
 from __future__ import annotations
 
 from eagle.spec import (
