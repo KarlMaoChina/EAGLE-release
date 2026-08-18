@@ -10,7 +10,13 @@ from eagle.io import read_table, write_json
 from eagle.preprocess import prepare_dual_view
 from eagle.runtime import resolve_device, seed_everything
 from eagle.segmentation import postprocess_segmentation
-from eagle.spec import DEPLOYMENT_THRESHOLD, SELECTED_RADIOMICS_FEATURES
+from eagle.spec import (
+    DEPLOYMENT_THRESHOLD,
+    ENLARGED_SPACING_MM,
+    PATCH_SIZE,
+    SELECTED_RADIOMICS_FEATURES,
+    STANDARD_SPACING_MM,
+)
 from eagle.train import TrainConfig, train_dvse_stream, train_fusion, train_tabular
 
 
@@ -51,6 +57,19 @@ def build_parser() -> argparse.ArgumentParser:
     infer.add_argument("--radiomics-table", default=None)
     infer.add_argument("--output", default=None)
     infer.add_argument("--device", default=None)
+
+    radiomics = sub.add_parser("extract-radiomics", help="Extract IBSI features from a CT/mask pair (requires [radiomics]).")
+    radiomics.add_argument("--image", required=True)
+    radiomics.add_argument("--mask", required=True)
+    radiomics.add_argument("--output", required=True)
+
+    evaluate = sub.add_parser("evaluate", help="Compute AUC, AP, and T=0.5 operating-point metrics from a score table.")
+    evaluate.add_argument("--table", required=True)
+    evaluate.add_argument("--label-col", default="label")
+    evaluate.add_argument("--score-col", default="probability")
+    evaluate.add_argument("--id-col", default="case_id")
+    evaluate.add_argument("--threshold", type=float, default=DEPLOYMENT_THRESHOLD)
+    evaluate.add_argument("--output", default=None)
 
     train_dvse = sub.add_parser("train-dvse", help="Train one DVSE stream (standard or enlarged).")
     _add_common(train_dvse)
@@ -111,15 +130,60 @@ def main(argv: list[str] | None = None) -> int:
         if prepared is None:
             raise SystemExit("Preprocessing failed: mask empty after resampling.")
         out = Path(args.output_dir) / args.case_id
-        save_nifti(prepared.standard_image, out / FILE_NAMES["standard_image"], spacing)
-        save_nifti(prepared.standard_mask, out / FILE_NAMES["standard_mask"], spacing)
-        save_nifti(prepared.enlarged_image, out / FILE_NAMES["enlarged_image"], spacing)
-        save_nifti(prepared.enlarged_mask, out / FILE_NAMES["enlarged_mask"], spacing)
-        write_json(out / "preprocess.json", {"case_id": args.case_id, "source_spacing": list(spacing)})
+        save_nifti(prepared.standard_image, out / FILE_NAMES["standard_image"], STANDARD_SPACING_MM)
+        save_nifti(prepared.standard_mask, out / FILE_NAMES["standard_mask"], STANDARD_SPACING_MM)
+        save_nifti(prepared.enlarged_image, out / FILE_NAMES["enlarged_image"], ENLARGED_SPACING_MM)
+        save_nifti(prepared.enlarged_mask, out / FILE_NAMES["enlarged_mask"], ENLARGED_SPACING_MM)
+        write_json(
+            out / "preprocess.json",
+            {
+                "case_id": args.case_id,
+                "source_spacing": list(spacing),
+                "standard_spacing": list(STANDARD_SPACING_MM),
+                "enlarged_spacing": list(ENLARGED_SPACING_MM),
+                "patch_size": list(PATCH_SIZE),
+            },
+        )
         return 0
 
     if args.command == "fit-stats":
         fit_freeze_stats(args.table, args.output_dir)
+        return 0
+
+    if args.command == "extract-radiomics":
+        from eagle.radiomics import extract_radiomics_features
+
+        image, mask, spacing = load_volume(args.image), load_volume(args.mask), load_spacing(args.image)
+        features = extract_radiomics_features(image, mask, spacing)
+        write_json(args.output, features)
+        print({"n_features": len(features), "output": args.output})
+        return 0
+
+    if args.command == "evaluate":
+        from eagle.metrics import operating_point_metrics, safe_ap, safe_auc
+
+        table = read_table(args.table)
+        if args.label_col not in table.columns or args.score_col not in table.columns:
+            raise SystemExit(f"Table must contain columns {args.label_col!r} and {args.score_col!r}.")
+        case_ids = (
+            table[args.id_col].astype(str).tolist()
+            if args.id_col in table.columns
+            else [str(i) for i in range(len(table))]
+        )
+        labels = [float(v) for v in table[args.label_col].tolist()]
+        scores = [float(v) for v in table[args.score_col].tolist()]
+        labeled = [(lab, score) for lab, score in zip(labels, scores) if lab in (0.0, 1.0)]
+        y = [item[0] for item in labeled]
+        p = [item[1] for item in labeled]
+        summary = {
+            "n": len(case_ids),
+            "auc": safe_auc(y, p) if y else float("nan"),
+            "ap": safe_ap(y, p) if y else float("nan"),
+            **operating_point_metrics(y, p, float(args.threshold)),
+        }
+        if args.output:
+            write_json(args.output, summary)
+        print(summary)
         return 0
 
     if args.command == "infer":
@@ -130,7 +194,8 @@ def main(argv: list[str] | None = None) -> int:
         row = clinical_table.loc[clinical_table["case_id"] == args.case_id]
         if row.empty:
             raise SystemExit(f"case_id {args.case_id} was not found in the clinical table.")
-        clinical = prepare_clinical_row(row.iloc[0], package)
+        record = row.iloc[0]
+        clinical = prepare_clinical_row(record, package)
         if args.radiomics_table:
             ra_table = read_table(args.radiomics_table)
             id_col = "case_id" if "case_id" in ra_table.columns else ra_table.columns[0]

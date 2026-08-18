@@ -44,13 +44,22 @@ def prepare_radiomics_volume(
     return scaled.astype(np.float32), dilated.astype(np.uint8)
 
 
+def as_sitk_image(array: np.ndarray, spacing: tuple[float, float, float]):
+    """Convert an array whose axes match `spacing` into a SimpleITK image."""
+    import SimpleITK as sitk
+
+    image = sitk.GetImageFromArray(np.ascontiguousarray(array))
+    image.SetSpacing((float(spacing[2]), float(spacing[1]), float(spacing[0])))
+    return image
+
+
 def pyradiomics_settings() -> dict[str, Any]:
+    # Intensity resampling, z-score and *100 scaling are applied in
+    # `prepare_radiomics_volume`. PyRadiomics then bins those values.
     return {
         "binWidth": RADIOMICS_BIN_WIDTH,
-        "resampledPixelSpacing": list(RADIOMICS_SPACING_MM),
         "interpolator": "sitkBSpline",
-        "normalize": True,
-        "normalizeScale": RADIOMICS_INTENSITY_SCALE,
+        "normalize": False,
         "label": 1,
         "additionalInfo": False,
     }
@@ -81,9 +90,11 @@ def extract_radiomics_features(
         ) from exc
 
     prepared_image, prepared_mask = prepare_radiomics_volume(image, mask, spacing)
+    sitk_image = as_sitk_image(prepared_image, RADIOMICS_SPACING_MM)
+    sitk_mask = as_sitk_image(prepared_mask, RADIOMICS_SPACING_MM)
     extractor = featureextractor.RadiomicsFeatureExtractor(pyradiomics_settings())
     extractor.enableImageTypes(**pyradiomics_image_types())
-    result = extractor.execute(prepared_image, prepared_mask, label=1)
+    result = extractor.execute(sitk_image, sitk_mask, label=1)
     features = {
         str(name): float(value)
         for name, value in result.items()

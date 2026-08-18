@@ -7,7 +7,7 @@ import torch
 
 from eagle.clinical import apply_imputation, clinical_vector, fit_imputation, standardize_clinical_columns
 from eagle.metrics import operating_point_metrics, selection_metric, wilson_interval, youden_threshold
-from eagle.models import BiAMF, CrossModalAttention, DualDynamicWeighting, SpatialPriorModulation, TabularEncoder
+from eagle.models import BiAMF, CrossModalAttention, DualDynamicWeighting, DualViewSpatialEncoder, SpatialPriorModulation, TabularEncoder
 from eagle.preprocess import DualViewCase, enhance_enlarged_mask, enhance_standard_mask, prepare_dual_view
 from eagle.segmentation import postprocess_segmentation
 from eagle.spec import (
@@ -152,3 +152,32 @@ def test_biamf_forward_shape() -> None:
             torch.randn(1, 32),
         )
     assert logits.shape == (1, 1)
+
+
+def test_dvse_pooled_dim_is_204() -> None:
+    encoder = DualViewSpatialEncoder()
+    assert encoder.feature_dim == 204
+    hidden = encoder.features(torch.randn(1, 1, *PATCH_SIZE), torch.rand(1, 1, *PATCH_SIZE))
+    assert hidden.shape == (1, 204)
+
+
+def test_radiomics_settings_do_not_renormalize() -> None:
+    from eagle.radiomics import pyradiomics_settings
+
+    settings = pyradiomics_settings()
+    assert settings["normalize"] is False
+    assert settings["binWidth"] == 5
+
+
+def test_evaluate_cli(tmp_path) -> None:
+    from eagle.cli import main as cli_main
+    from eagle.io import read_json
+
+    table = tmp_path / "scores.csv"
+    table.write_text("case_id,label,probability\ncase_0001,0,0.1\ncase_0002,1,0.9\n", encoding="utf-8")
+    output = tmp_path / "metrics.json"
+    assert cli_main(["evaluate", "--table", str(table), "--output", str(output)]) == 0
+    metrics = read_json(output)
+    assert metrics["tp"] == 1
+    assert metrics["tn"] == 1
+    assert metrics["threshold"] == 0.5

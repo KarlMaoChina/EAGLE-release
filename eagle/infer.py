@@ -25,15 +25,13 @@ from eagle.metrics import operating_point_metrics, safe_ap, safe_auc
 from eagle.models import BiAMF, load_biamf
 from eagle.preprocess import prepare_dual_view
 from eagle.radiomics import apply_radiomics_scaler, select_frozen_features
-from eagle.spec import SELECTED_RADIOMICS_FEATURES
-from eagle.runtime import resolve_device
 from eagle.segmentation import postprocess_segmentation
 from eagle.spec import (
-    CLINICAL_FEATURE_NAMES,
     CONTINUOUS_CLINICAL_FEATURES,
     DEPLOYMENT_THRESHOLD,
     N_FOLDS,
     PATCH_SIZE,
+    SELECTED_RADIOMICS_FEATURES,
 )
 
 

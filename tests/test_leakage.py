@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", "eagle.egg-info"}
+SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", "eagle.egg-info", "outputs"}
 TEXT_SUFFIXES = {".py", ".md", ".yml", ".yaml", ".txt", ".csv", ".toml", ".cfg", ".ini"}
 FORBIDDEN = (
     "maoshufan",
@@ -42,6 +42,11 @@ def _iter_text_files() -> list[Path]:
             continue
         files.append(path)
     return files
+
+
+def test_internal_handoff_files_are_absent() -> None:
+    assert not (ROOT / "HANDOFF.md").exists()
+    assert not (ROOT / "HANDOFF_LAB.md").exists()
 
 
 def test_no_site_or_internal_identifiers() -> None:

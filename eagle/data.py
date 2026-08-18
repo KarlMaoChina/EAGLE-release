@@ -176,7 +176,7 @@ class DualViewDataset(Dataset):
         if missing:
             raise KeyError(f"Case table is missing required columns: {missing}")
         needed = list(CLINICAL_FEATURE_NAMES) + list(self.radiomics_columns)
-        self.table = table.dropna(subset=needed).reset_index(drop=True)
+        self.table = self.table.dropna(subset=needed).reset_index(drop=True)
         self.table = self._keep_complete_cases(self.table)
         if self.table.empty:
             raise ValueError("No complete cases were found under the configured image root.")

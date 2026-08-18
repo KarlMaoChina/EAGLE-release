@@ -33,6 +33,10 @@ cases/
 *.mha
 *.mhd
 
+# Internal lab notes — never publish
+HANDOFF.md
+HANDOFF_LAB.md
+
 # Editors / OS
 .idea/
 .vscode/
