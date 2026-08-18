@@ -1,0 +1,3 @@
+Release a public EAGLE v1.0 pipeline aligned with the submitted methods.
+
+Replace the previous trainer dump with modular inference and training code, and remove site identifiers, internal paths, and case lists from the repository.

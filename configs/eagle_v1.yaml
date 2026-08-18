@@ -1,0 +1,32 @@
+# Frozen EAGLE v1.0 hyperparameters. Point the path fields at local folders.
+# Do not commit case tables, images, or checkpoints.
+
+seed: 42
+device: null
+num_folds: 5
+deployment_threshold: 0.5
+
+paths:
+  table: ./cases/table.csv
+  image_root: ./cases
+  output_dir: ./outputs
+  weights: ./checkpoints
+
+dvse:
+  learning_rate: 5.0e-4
+  weight_decay: 0.01
+  batch_size: 16
+  scheduler_patience: 8
+  early_stopping: 15
+
+fusion:
+  learning_rate: 5.0e-4
+  weight_decay: 0.15
+  batch_size: 8
+  scheduler_patience: 4
+  early_stopping: 12
+  max_epochs: 100
+  reduction_factor: 4
+  hidden_dropout: 0.4
+  final_dropout: 0.3
+  selection_auc_weight: 0.7

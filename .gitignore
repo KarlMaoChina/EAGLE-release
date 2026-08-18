@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Weights and run outputs — never commit local experiments
+*.pt
+*.pth
+*.ckpt
+*.onnx
+checkpoints/
+results/
+outputs/
+runs/
+logs/
+
+# Local data — this repository ships no patient images
+data/
+cases/
+*.nii
+*.nii.gz
+*.dcm
+*.nrrd
+*.mha
+*.mhd
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+*.swp

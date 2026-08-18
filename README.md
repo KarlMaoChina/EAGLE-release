@@ -1,72 +1,72 @@
-# EAGLE: Enhanced AI for Gallbladder Lesion Evaluation
+# EAGLE
 
-This repository contains the official PyTorch implementation for **EAGLE (Enhanced AI for Gallbladder Lesion Evaluation)**, an artificial intelligence (AI)-based model for the early detection of Gallbladder Cancer (GBC) from non-contrast CT images. This work is based on the research paper: *Harnessing multimodal artificial intelligence for enhanced early diagnostics in gallbladder cancer*.
+Official PyTorch implementation of **EAGLE** (Enhanced AI for Gallbladder Lesion Evaluation): a frozen multimodal pipeline that scores gallbladder malignancy risk from a non-contrast CT volume and twelve routine clinical variables.
 
-EAGLE is an integrated AI-based diagnostic platform that incorporates advanced organ segmentation and multimodal feature fusion. The diagnostic system is driven by a novel **Bidirectional Adaptive Modal Fusion (BiAMF)** framework, which integrates clinical parameters, radiomic features, and deep learning representations extracted from non-contrast CT scans.
+This repository contains the public methods code only. It does not include patient images, case identifiers, site-specific tables, or trained weights.
 
-## Project Structure
+## Method
 
+EAGLE v1.0 is five modules with a locked operating point:
+
+1. **Segmentation cleanup** — anatomy-aware post-processing of a gallbladder mask (spatial Gaussian prior, relative volume filter, 20 mm proximity, 2 mm closing).
+2. **Dual-view preparation** — standard spacing `0.72 x 0.72 x 1.0 mm` and enlarged spacing `0.9 x 0.9 x 2.0 mm`, both cropped to `96 x 112 x 80` patches, windowed at level 40 HU / width 300 HU, then z-scored, with region-adaptive masks.
+3. **Radiomics** — IBSI features via PyRadiomics 3.1.0 from a 5 mm dilated ROI (`1,470` candidates; `32` frozen names in `eagle/assets/radiomics_features_v1.txt`).
+4. **Clinical inputs** — twelve variables (cholelithiasis, age, A/G ratio, ALP, prealbumin, DBIL, TBIL, CEA, AFP, CA19-9, CA15-3, CA125). Continuous missing values use the development-split median; categorical missing values use the mode. Imputation is fit without the outcome.
+5. **BiAMF** — frozen tabular encoder plus two DVSE (ResNet-18-3D + spatial prior modulation) streams, projected to 256-d, 4-head cross-modal attention, dual dynamic weighting, residual MLP. Five-fold ensemble mean; binary call at **T = 0.5**.
+
+Random seed for fold use, initialization, augmentation, and bootstrap resampling is `42`.
+
+## Layout
+
+```text
+eagle/                 Python package
+configs/eagle_v1.yaml  public hyperparameters
+examples/cases.csv     header template (synthetic rows only)
+tests/                 unit tests, including a source leakage scan
 ```
-.
-├── main.py                 # Main script to run training
-├── configs/
-│   └── config.yaml         # Configuration file for paths & hyperparameters
-├── src/
-│   ├── __init__.py
-│   ├── data.py             # Dataset class (MultiModalDataset)
-│   ├── models.py           # All model-related classes
-│   ├── trainer.py          # The main training and evaluation logic
-│   └── utils.py            # Helper functions
-├── requirements.txt        # Python dependencies
-└── README.md               # This file
+
+Expected per-case image folder after `preprocess`:
+
+```text
+<cases>/case_0001/standard_image.nii.gz
+<cases>/case_0001/standard_mask.nii.gz
+<cases>/case_0001/enlarged_image.nii.gz
+<cases>/case_0001/enlarged_mask.nii.gz
 ```
 
-## Setup
+Case tables use a generic `case_id` column. Do not put identifiable source codes in that field if you share tables.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd <repository-name>
-    ```
+## Install
 
-2.  **Create a virtual environment (recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\\Scripts\\activate`
-    ```
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e .
+pip install -e ".[radiomics]"   # only if you need PyRadiomics extraction
+```
 
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+## Commands
 
-## Usage
+```bash
+python -m eagle postprocess-mask --mask mask.nii.gz --output mask_clean.nii.gz
+python -m eagle preprocess --image ct.nii.gz --mask mask.nii.gz --output-dir cases --case-id case_0001
+python -m eagle fit-stats --table cases/table.csv --output-dir checkpoints
+python -m eagle train-dvse --table cases/table.csv --image-root cases --output-dir outputs --stream standard
+python -m eagle train-dvse --table cases/table.csv --image-root cases --output-dir outputs --stream enlarged
+python -m eagle train-tabular --table cases/table.csv --image-root cases --output-dir outputs
+python -m eagle train-fusion --table cases/table.csv --image-root cases --output-dir outputs --extractor-root outputs
+python -m eagle infer --image ct.nii.gz --mask mask.nii.gz --clinical-table cases/table.csv --case-id case_0001 --weights checkpoints --output outputs/pred.json
+```
 
-1.  **Configure Data Paths:**
+`infer` expects `checkpoints/preprocess_stats.json` and `checkpoints/biamf/fold_{0-4}.pt`. Weights are not shipped here; place your own freeze package in that layout.
 
-    Before running the training, you must update the paths in the configuration file `configs/config.yaml` to point to your datasets and pre-trained models.
+## Tests
 
-    ```yaml
-    paths:
-      csv_path: "/path/to/your/dataset.csv"
-      data_path: "/path/to/your/image_data"
-      cl_data_path: "/path/to/your/clinical_data.xlsx"
-      ra_data_path: "/path/to/your/radiomics_features.csv"
-      experiment_base_path: "/path/to/your/image_model_checkpoints"
-      concat_base_path: "/path/to/your/concat_model_checkpoints"
-      ra_feature_names_path: "/path/to/your/ra_feature_names.txt"
-    ```
+```bash
+pip install pytest
+pytest
+```
 
-2.  **Run Training:**
+## Citation
 
-    To start the training process, run the `main.py` script. You can optionally point to a different configuration file using the `--config` argument.
-
-    ```bash
-    python main.py --config configs/config.yaml
-    ```
-
-    The script will create a new experiment directory inside `results/` containing logs, model checkpoints, and other artifacts.
-
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Please cite the accompanying paper when using this code.
